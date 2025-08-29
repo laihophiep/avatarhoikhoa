@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap');
+
+body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    padding: 30px;
+}
+
+header h1 {
+    font-size: 28px;
+    color: #1a73e8;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 16px;
+    color: #5f6368;
+    margin-bottom: 30px;
+}
+
+#canvas-container {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    background-color: #e9ebee;
+    border-radius: 8px;
+    border: 2px dashed #dcdfe3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.controls {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.control-group {
+    width: 100%;
+}
+
+.control-group label {
+    font-weight: 500;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.btn-primary {
+    background-color: #1a73e8;
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #1558b8;
+}
+
+.btn-success {
+    background-color: #34a853;
+    color: white;
+}
+.btn-success:hover {
+    background-color: #2b8a43;
+}
+.btn:disabled {
+    background-color: #dcdfe3;
+    cursor: not-allowed;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    max-width: 300px;
+    height: 8px;
+    background: #dcdfe3;
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+}
+input[type="range"]:hover {
+    opacity: 1;
+}
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #1a73e8;
+    border-radius: 50%;
+    cursor: pointer;
+}
+input[type="range"]:disabled::-webkit-slider-thumb {
+    background: #aeb1b5;
+}
+
+footer {
+    margin-top: 30px;
+    font-size: 14px;
+    color: #9aa0a6;
+}
+/* --- Bổ sung CSS cho các điều khiển mới --- */
+.controls {
+    border-top: 1px solid #e9ecef;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+#bg-type-selector {
+    border: 1px solid #dcdfe3;
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin: 15px 0;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+#bg-type-selector legend {
+    padding: 0 10px;
+    font-weight: 500;
+    color: #5f6368;
+}
+
+#bg-type-selector div {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#bg-type-selector input[type="radio"] {
+    accent-color: #1a73e8;
+}
+
+#color-controls input[type="color"] {
+    width: 100%;
+    max-width: 300px;
+    height: 40px;
+    border: 1px solid #dcdfe3;
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
