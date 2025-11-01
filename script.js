@@ -1,130 +1,62 @@
+// Đặt trong thẻ <script> của file HTML hoặc một file .js riêng
 document.addEventListener('DOMContentLoaded', () => {
-    // Các thành phần UI
-    const uploadBtn = document.getElementById('upload-btn');
-    const zoomSlider = document.getElementById('zoom-slider');
-    const downloadBtn = document.getElementById('download-btn');
-    const container = document.getElementById('canvas-container');
-    const colorPicker = document.getElementById('color-picker');
-    const fanpageAvatarPreview = document.getElementById('fanpage-avatar-preview');
+    const baguaImage = document.getElementById('bagua-image');
+    const currentHeadingDisplay = document.getElementById('current-heading');
+    const permissionButton = document.getElementById('permission-button');
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    let currentHeading = 0; // Hướng hiện tại của thiết bị
 
-    // --- Khởi tạo Konva Stage ---
-    const stage = new Konva.Stage({
-        container: 'canvas-container',
-        width: width,
-        height: height,
-    });
+    // Hàm xử lý khi có dữ liệu hướng thiết bị
+    function handleDeviceOrientation(event) {
+        // alpha: Hướng Đông-Tây (compass heading)
+        // Đây là giá trị quan trọng nhất cho la bàn
+        if (event.webkitCompassHeading !== undefined) {
+            // Dành cho Safari trên iOS (giá trị la bàn từ 0-360 độ Bắc)
+            currentHeading = event.webkitCompassHeading;
+        } else if (event.alpha !== null) {
+            // Dành cho các trình duyệt khác (giá trị từ 0-360 độ)
+            // Cần hiệu chỉnh lại để 0 độ là Bắc.
+            // event.alpha là hướng so với trục Z, giá trị thay đổi khi thiết bị xoay
+            // Có thể cần thêm beta, gamma để tính toán chính xác hơn tùy trường hợp
+            currentHeading = 360 - event.alpha; // Đảo ngược để 0 độ là Bắc và tăng theo chiều kim đồng hồ
+        }
 
-    const backgroundLayer = new Konva.Layer();
-    const userImageLayer = new Konva.Layer();
-    const frameLayer = new Konva.Layer();
-    // Thứ tự thêm layer rất quan trọng: nền -> ảnh -> khung
-    stage.add(backgroundLayer, userImageLayer, frameLayer);
+        // Cập nhật hiển thị hướng
+        currentHeadingDisplay.textContent = `${currentHeading.toFixed(1)}°`;
 
-    let userImage = null;
-
-    // --- Tạo lớp nền màu và hiển thị nó ngay từ đầu ---
-    const backgroundRect = new Konva.Rect({
-        x: 0,
-        y: 0,
-        width: width,
-        height: height,
-        fill: colorPicker.value, // Lấy màu mặc định từ color picker
-    });
-    backgroundLayer.add(backgroundRect);
-    stage.draw();
-
-    // Hàm cập nhật bản xem trước
-    function updatePreview() {
-        // Sử dụng setTimeout để đảm bảo canvas đã vẽ xong trước khi lấy dữ liệu
-        setTimeout(() => {
-            const previewDataURL = stage.toDataURL({
-                width: 60,
-                height: 60,
-                pixelRatio: 2,
-            });
-            fanpageAvatarPreview.style.backgroundImage = `url(${previewDataURL})`;
-        }, 50); 
+        // Xoay hình ảnh Bát Trạch
+        // Hình ảnh cần xoay ngược lại với hướng của thiết bị
+        // Nếu điện thoại quay 30 độ về Đông, hình ảnh cần xoay -30 độ để "cố định" Bắc
+        baguaImage.style.transform = `rotate(${-currentHeading}deg)`;
     }
 
-    // --- Xử lý chọn màu ---
-    colorPicker.addEventListener('input', (e) => {
-        backgroundRect.fill(e.target.value);
-        updatePreview();
-    });
+    // Hàm yêu cầu quyền truy cập cảm biến (chỉ cho iOS 13+ và Safari)
+    function requestDeviceOrientationPermission() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleDeviceOrientation);
+                        permissionButton.style.display = 'none'; // Ẩn nút sau khi cấp quyền
+                    } else {
+                        currentHeadingDisplay.textContent = 'Không được cấp quyền la bàn.';
+                        alert('Bạn cần cấp quyền truy cập la bàn để sử dụng tính năng này.');
+                    }
+                })
+                .catch(console.error);
+        } else {
+            // Các trình duyệt khác không cần yêu cầu quyền rõ ràng
+            window.addEventListener('deviceorientation', handleDeviceOrientation);
+            permissionButton.style.display = 'none'; // Ẩn nút nếu không cần quyền
+        }
+    }
 
-    // --- Xử lý tải ảnh người dùng lên ---
-    uploadBtn.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = () => {
-            Konva.Image.fromURL(reader.result, (img) => {
-                userImageLayer.destroyChildren();
-                userImage = img;
-                userImage.setAttrs({
-                    x: width / 2,
-                    y: height / 2,
-                    draggable: true,
-                });
+    // Gắn sự kiện click cho nút yêu cầu quyền
+    permissionButton.addEventListener('click', requestDeviceOrientationPermission);
 
-                const aspectRatio = userImage.width() / userImage.height();
-                let newWidth, newHeight;
-                if (aspectRatio > 1) {
-                    newHeight = height;
-                    newWidth = height * aspectRatio;
-                } else {
-                    newWidth = width;
-                    newHeight = width / aspectRatio;
-                }
-                userImage.width(newWidth);
-                userImage.height(newHeight);
-                userImage.offsetX(userImage.width() / 2);
-                userImage.offsetY(userImage.height() / 2);
-
-                userImageLayer.add(userImage);
-                zoomSlider.disabled = false;
-                downloadBtn.disabled = false;
-                updatePreview();
-            });
-        };
-        reader.readAsDataURL(file);
-    });
-
-    // --- Xử lý thanh trượt phóng to/thu nhỏ ---
-    zoomSlider.addEventListener('input', (e) => {
-        if (!userImage) return;
-        const scale = parseFloat(e.target.value);
-        userImage.scale({ x: scale, y: scale });
-        updatePreview();
-    });
-
-    // --- Tải và hiển thị ảnh khung ---
-    Konva.Image.fromURL('./images/frame.png', (frameImg) => {
-        frameImg.setAttrs({
-            width: width,
-            height: height,
-            listening: false,
-        });
-        frameLayer.add(frameImg);
-        updatePreview(); // Cập nhật lại preview sau khi khung đã tải xong
-    });
-
-    // --- Xử lý tải ảnh đã ghép về ---
-    downloadBtn.addEventListener('click', () => {
-        const dataURL = stage.toDataURL({
-            pixelRatio: 3,
-            mimeType: 'image/png',
-        });
-
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = 'avatar-facebook.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
+    // Thử khởi động ngay nếu không phải iOS 13+ hoặc quyền đã được cấp trước đó
+    if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+        window.addEventListener('deviceorientation', handleDeviceOrientation);
+        permissionButton.style.display = 'none';
+    }
 });
