@@ -3,50 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tạo Khung Avatar Facebook - Mr.Hiệp</title>
-    <link rel="stylesheet" href="style.css">
+    <title>La Bàn Phong Thủy Bát Trạch</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            overflow: hidden; /* Ngăn cuộn trang khi xoay */
+        }
+        #compass-container {
+            position: relative;
+            width: 90vmin; /* Kích thước tương đối */
+            height: 90vmin;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #bagua-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Đảm bảo hình ảnh vừa vặn */
+            transform-origin: center; /* Xoay quanh tâm */
+            transition: transform 0.1s linear; /* Hiệu ứng xoay mượt mà */
+        }
+        #current-heading {
+            position: absolute;
+            top: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        #permission-button {
+            position: absolute;
+            bottom: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Tạo Khung Avatar Của Bạn</h1>
-            <p>Tải ảnh của bạn lên, căn chỉnh cho vừa vặn và tải về thành quả!</p>
-        </header>
-
-        <main class="editor-container">
-        
- <div class="editor-section">
-    <div id="canvas-container"></div>
-    <div class="controls">
-        <div class="control-group">
-            <label for="upload-btn" class="btn btn-primary">1. Tải Ảnh Lên</label>
-            <input type="file" id="upload-btn" accept="image/*" hidden>
-        </div>
-
-        <div class="control-group">
-            <label for="color-picker">2. Chọn Màu Nền</label>
-            <input type="color" id="color-picker" value="#FFFFFF">
-        </div>
-
-        <div class="control-group">
-            <label for="zoom-slider">3. Phóng to / Thu nhỏ Ảnh</label>
-            <input type="range" id="zoom-slider" min="0.2" max="3" step="0.05" value="1" disabled>
-        </div>
-        <div class="control-group">
- <button id="download-btn" class="btn btn-success" disabled>3. Tải Ảnh Về</button>
-
-    <p class="preview-note">Có thể phóng to thu nhỏ Hình ảnh, thay đổi màu nền với hình ảnh không nền, hoặc căn chỉnh hình ảnh vào đúng chỗ bằng cách giữ kéo chuột ở hình ảnh bạn cần chỉnh.</p>
-    </div>
-    </div>
-</div>
-
- </main>
-        <footer>
-            <p>Tạo bởi MrHiep</p>
-        </footer>
+    <div id="compass-container">
+        <img id="bagua-image" src="your_bagua_image.png" alt="La Kinh Bát Trạch">
+        <div id="current-heading">Loading...</div>
+        <button id="permission-button">Cấp quyền La Bàn</button>
     </div>
 
-    <script src="https://unpkg.com/konva@9.3.6/konva.min.js"></script>
+     <script src="https://unpkg.com/konva@9.3.6/konva.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
