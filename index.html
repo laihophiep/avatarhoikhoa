@@ -3,246 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ứng Dụng Tra Hướng Nhà Phong Thủy</title>
+    <title>Ứng Dụng La Bàn Bát Trạch trên Leaflet Map</title>
+    <link rel="stylesheet" href="http://googleusercontent.com/cdn.leafletjs.com/leaflet/v1.7.1/leaflet.css" />
     <style>
-        /* === CƠ SỞ CHUNG === */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        /* === TAB NAVIGATION === */
-        .tab-controls {
-            display: flex;
-            width: 100%;
-            max-width: 600px;
-            margin-bottom: 10px;
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .tab-button {
-            flex-grow: 1;
-            padding: 15px 0;
-            text-align: center;
-            border: none;
-            background-color: #eee;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s;
-        }
-        .tab-button.active {
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-        }
-
-        /* === TAB CONTENT (MAP VIEW) === */
-        .tab-content {
-            width: 100%;
-            max-width: 600px;
-            padding: 10px;
-            display: none; /* Mặc định ẩn */
-        }
-        .tab-content.active {
-            display: block; /* Hiện thị tab đang active */
+            background-color: #f4f4f4;
         }
         
+        /* Container chứa bản đồ */
         #map-container {
             width: 100%;
-            height: 350px;
-            border-radius: 8px;
-            overflow: hidden;
+            height: 80vh; /* Chiều cao chiếm 80% màn hình */
+            max-width: 800px;
+            margin-top: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-        #map-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+        
+        /* Đảm bảo hình ảnh lớp phủ có thể xoay mượt mà */
+        .leaflet-image-layer {
+            transition: none !important; /* Quan trọng: Tắt transition mặc định của Leaflet */
+            will-change: transform; /* Tối ưu hóa hiệu suất */
         }
 
-        /* === TAB CONTENT (COMPASS VIEW) === */
-        #compass-view {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #compass-info {
-            font-size: 1.2em;
-            margin-bottom: 20px;
-            color: #333;
-            text-align: center;
-        }
-        #compass-container {
-            position: relative;
-            width: 90vmin; 
-            max-width: 400px;
-            height: 90vmin;
-            max-height: 400px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 2px solid #ccc; /* Thêm đường viền */
-            border-radius: 50%;
-            overflow: hidden;
-        }
-        #bagua-image {
+        /* Các phần tử điều khiển và thông tin */
+        #compass-info, #control-panel {
             width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transform-origin: center;
-            /* Bỏ transition trong CSS để sử dụng requestAnimationFrame cho độ mượt tối ưu hơn */
+            max-width: 800px;
+            text-align: center;
+            padding: 10px;
+            background-color: white;
+            border-bottom: 1px solid #ddd;
         }
+
         #permission-button {
-            margin-top: 15px;
             padding: 10px 20px;
             font-size: 1em;
             cursor: pointer;
-            background-color: #28a745;
+            background-color: #007bff;
             color: white;
             border: none;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="tab-controls">
-        <button class="tab-button active" onclick="openTab('map-view', this)">🧭 Xem Vị Trí Đất</button>
-        <button class="tab-button" onclick="openTab('compass-view', this)">📐 Đo Hướng Bát Trạch</button>
-    </div>
 
-    <div id="map-view" class="tab-content active">
-        <p style="text-align: center; color: #555;">Sử dụng bản đồ để xác định vị trí mảnh đất, sau đó chuyển sang tab Đo Hướng.</p>
-        <div id="map-container">
-            <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.1437651036327!2d106.69970367355799!3d10.800000000000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f360946d47b%3A0x6715f6b2164f9f7a!2zTMOyIE1p4buNbmcsIFBo4bqhbSBOZ-G7jWMgUXXpIiwgQmluZ2ggVGjhuqFuaCwgVGjDoG5oIHBo4buRIEjhu5MgQ2jDrSBNaW5oLCBWaeG7h3QgTmFt!5e0!3m2!1svi!2s!4v1633000000000!5m2!1svi!2s" 
-                allowfullscreen="" 
-                loading="lazy" 
-                referrerpolicy="no-referrer-when-downgrade">
-            </iframe>
-        </div>
-    </div>
-
-    <div id="compass-view" class="tab-content">
-        <div id="compass-info">
-            Hướng hiện tại: <span id="current-heading">0.0°</span> (Bắc là $0^\circ$)
-        </div>
-
+    <div id="control-panel">
         <button id="permission-button">
-            Kích hoạt La Bàn
+            Kích hoạt La Bàn để xoay Bát Trạch
         </button>
-        
-        <div id="compass-container">
-            <img id="bagua-image" src="/images/anhlaban.png" alt="La Kinh Bát Trạch">
-        </div>
+        <p id="compass-info">
+            Hướng hiện tại: <span id="current-heading">0.0°</span> | Độ lệch bù: <span id="offset-display">0.0°</span>
+        </p>
     </div>
+
+    <div id="map-container"></div>
+
+    <script src="http://googleusercontent.com/cdn.leafletjs.com/leaflet/v1.7.1/leaflet.js"></script>
 
     <script>
-        // === LOGIC CHUYỂN TAB ===
-        function openTab(tabId, tabButton) {
-            // Ẩn tất cả nội dung tab
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            // Loại bỏ active từ tất cả nút
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
+        // =================================================================================
+        // THIẾT LẬP BAN ĐẦU
+        // =================================================================================
+        
+        // Tọa độ trung tâm mảnh đất của bạn (Thay thế bằng tọa độ thực tế)
+        const MAP_CENTER_LAT = 21.028511; 
+        const MAP_CENTER_LNG = 105.804817;
 
-            // Hiển thị nội dung tab được chọn
-            document.getElementById(tabId).classList.add('active');
-            // Đánh dấu nút đang active
-            tabButton.classList.add('active');
+        // URL của hình ảnh Bát Trạch PNG (Cần có nền trong suốt)
+        const BAGUA_IMAGE_URL = '/images/anhlaban.png'; 
+
+        // Hệ số bù trừ/Hiệu chỉnh độ lệch so với la bàn iPhone (đổi số này theo thực tế)
+        const CALIBRATION_OFFSET = -2.2; 
+        document.getElementById('offset-display').textContent = CALIBRATION_OFFSET.toFixed(1) + '°';
+
+        // Phạm vi hình ảnh Bát Trạch trên Map (Độ lớn của vòng tròn La Kinh trên bản đồ)
+        // Giá trị càng lớn, vòng tròn càng rộng. (0.0005 tương đương khoảng 100m)
+        const BAGUA_RADIUS = 0.0007; 
+        const bounds = [
+            [MAP_CENTER_LAT - BAGUA_RADIUS, MAP_CENTER_LNG - BAGUA_RADIUS], // Góc Tây Nam
+            [MAP_CENTER_LAT + BAGUA_RADIUS, MAP_CENTER_LNG + BAGUA_RADIUS]  // Góc Đông Bắc
+        ];
+
+        // =================================================================================
+        // KHỞI TẠO MAP VÀ OVERLAY
+        // =================================================================================
+
+        // Khởi tạo bản đồ Leaflet
+        var map = L.map('map-container').setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 17);
+
+        // Thêm Tile Layer (Sử dụng OpenStreetMap miễn phí)
+        L.tileLayer('http://googleusercontent.com/tile.openstreetmap.org/0/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: 'Map data © <a href="http://googleusercontent.com/openstreetmap.org">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Thêm lớp phủ hình ảnh Bát Trạch
+        var baguaOverlay = L.imageOverlay(BAGUA_IMAGE_URL, bounds, {
+            opacity: 0.7, // Độ mờ của La Bàn (70%)
+            interactive: false // Không tương tác trực tiếp với hình ảnh
+        }).addTo(map);
+
+        // Lấy phần tử DOM của hình ảnh để áp dụng phép biến đổi CSS
+        var baguaImageElement = baguaOverlay.getElement();
+        
+        // Cài đặt transform-origin (Tâm xoay)
+        if (baguaImageElement) {
+            baguaImageElement.style.transformOrigin = 'center';
         }
 
-        // === LOGIC LA BÀN VÀ XOAY HÌNH ẢNH ===
-        document.addEventListener('DOMContentLoaded', () => {
-            const baguaImage = document.getElementById('bagua-image');
-            const currentHeadingDisplay = document.getElementById('current-heading');
-            const permissionButton = document.getElementById('permission-button');
+        // =================================================================================
+        // LOGIC LA BÀN VÀ XOAY
+        // =================================================================================
 
-            let targetHeading = 0; // Hướng mục tiêu từ la bàn (0-360)
-            let currentRotation = 0; // Vị trí xoay hiện tại của hình ảnh (từ 0 đến -360)
+        const currentHeadingDisplay = document.getElementById('current-heading');
+        const permissionButton = document.getElementById('permission-button');
 
-            // Hàm làm mượt chuyển động (Smoothing function)
-            function smoothRotation() {
-                // Tính toán hướng xoay mong muốn (-targetHeading)
-                let desiredRotation = -targetHeading;
+        let targetHeading = 0; 
+        let currentRotation = 0; 
+        const smoothingFactor = 0.15; // Hệ số làm mượt
 
-                // Tối ưu hóa để xoay theo đường ngắn nhất
-                while (desiredRotation - currentRotation > 180) {
-                    currentRotation += 360;
-                }
-                while (desiredRotation - currentRotation < -180) {
-                    currentRotation -= 360;
-                }
+        // Hàm làm mượt chuyển động xoay
+        function smoothRotation() {
+            if (!baguaImageElement) return;
 
-                // Dùng hệ số làm mượt (ví dụ: 0.1)
-                // Giá trị này càng nhỏ thì chuyển động càng mượt nhưng phản hồi chậm hơn
-                const smoothingFactor = 0.1;
-                currentRotation += (desiredRotation - currentRotation) * smoothingFactor;
+            // Tính toán hướng xoay mong muốn (Ngược lại với hướng thiết bị, sau khi hiệu chỉnh)
+            let desiredRotation = -(targetHeading + CALIBRATION_OFFSET);
 
-                // Áp dụng xoay
-                baguaImage.style.transform = `rotate(${currentRotation.toFixed(2)}deg)`;
-
-                // Tiếp tục gọi hàm này ở frame tiếp theo
-                requestAnimationFrame(smoothRotation);
+            // Tối ưu hóa để xoay theo đường ngắn nhất (Giảm nhảy góc)
+            while (desiredRotation - currentRotation > 180) {
+                currentRotation += 360;
+            }
+            while (desiredRotation - currentRotation < -180) {
+                currentRotation -= 360;
             }
 
-            // Hàm xử lý dữ liệu từ cảm biến la bàn
-            function handleDeviceOrientation(event) {
-                let newHeading;
+            // Áp dụng làm mượt (dịch chuyển dần về hướng mục tiêu)
+            currentRotation += (desiredRotation - currentRotation) * smoothingFactor;
 
-                if (event.webkitCompassHeading !== undefined) {
-                    // Dành cho Safari trên iOS: Dữ liệu la bàn trực tiếp (0-360)
-                    newHeading = event.webkitCompassHeading;
-                } else if (event.alpha !== null) {
-                    // Dành cho các trình duyệt khác: Cần tính toán lại (alpha là hướng so với trục Z)
-                    // newHeading = 360 - event.alpha; 
-                    // Dùng alpha thường không chính xác và ổn định bằng webkitCompassHeading
-                    return; 
-                } else {
-                    return; // Không có dữ liệu hướng
-                }
-                
-                targetHeading = newHeading; // Cập nhật hướng mục tiêu
-                currentHeadingDisplay.textContent = `${newHeading.toFixed(1)}°`;
+            // Áp dụng xoay lên lớp phủ Leaflet
+            baguaImageElement.style.transform = 
+                baguaImageElement.style.transform.replace(/rotate\((.*?)deg\)/, '') + 
+                ` rotate(${currentRotation.toFixed(2)}deg)`;
+            
+            requestAnimationFrame(smoothRotation);
+        }
+
+        // Hàm xử lý dữ liệu từ cảm biến la bàn
+        function handleDeviceOrientation(event) {
+            let rawHeading;
+
+            if (event.webkitCompassHeading !== undefined) {
+                // Dành cho Safari trên iOS: Dữ liệu la bàn trực tiếp (0-360)
+                rawHeading = event.webkitCompassHeading;
+            } else if (event.alpha !== null) {
+                // Dành cho các trình duyệt khác (alpha), nhưng ít chính xác hơn trên iOS
+                rawHeading = 360 - event.alpha; 
+            } else {
+                return; 
             }
+            
+            targetHeading = rawHeading; 
+            
+            // Hiển thị hướng đã hiệu chỉnh
+            let displayHeading = rawHeading + CALIBRATION_OFFSET;
+            while (displayHeading < 0) displayHeading += 360;
+            while (displayHeading >= 360) displayHeading -= 360;
 
-            // Hàm yêu cầu cấp quyền truy cập la bàn (Bắt buộc trên iOS 13+ Safari)
-            function requestDeviceOrientationPermission() {
-                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            if (permissionState === 'granted') {
-                                window.addEventListener('deviceorientation', handleDeviceOrientation);
-                                permissionButton.style.display = 'none'; // Ẩn nút
-                                smoothRotation(); // Bắt đầu làm mượt
-                            } else {
-                                currentHeadingDisplay.textContent = '⛔ Không được cấp quyền la bàn.';
-                                alert('Vui lòng cấp quyền truy cập la bàn trong cài đặt trình duyệt.');
-                            }
-                        })
-                        .catch(err => {
-                             currentHeadingDisplay.textContent = '❌ Lỗi hệ thống la bàn.';
-                             console.error(err);
-                        });
-                } else {
-                    // Các trình duyệt không cần quyền
-                    window.addEventListener('deviceorientation', handleDeviceOrientation);
-                    permissionButton.style.display = 'none';
-                    smoothRotation(); // Bắt đầu làm mượt
-                }
+            currentHeadingDisplay.textContent = `${displayHeading.toFixed(1)}°`;
+        }
+
+        // Hàm yêu cầu cấp quyền truy cập la bàn (Bắt buộc trên iOS 13+ Safari)
+        function requestDeviceOrientationPermission() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleDeviceOrientation);
+                            permissionButton.style.display = 'none'; 
+                            smoothRotation(); // Bắt đầu làm mượt
+                            alert('Đã kích hoạt La Bàn. Giữ điện thoại nằm ngang để đo hướng chuẩn xác nhất.');
+                        } else {
+                            currentHeadingDisplay.textContent = '⛔ Không được cấp quyền la bàn.';
+                            alert('Vui lòng cấp quyền truy cập la bàn trong cài đặt trình duyệt.');
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Các trình duyệt không cần quyền
+                window.addEventListener('deviceorientation', handleDeviceOrientation);
+                permissionButton.style.display = 'none';
+                smoothRotation();
             }
+        }
 
-            // Gắn sự kiện click cho nút yêu cầu quyền
-            permissionButton.addEventListener('click', requestDeviceOrientationPermission);
-        });
+        // Gắn sự kiện click cho nút yêu cầu quyền
+        permissionButton.addEventListener('click', requestDeviceOrientationPermission);
     </script>
 </body>
 </html>
