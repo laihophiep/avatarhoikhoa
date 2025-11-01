@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ứng Dụng La Bàn Bát Trạch trên Leaflet Map</title>
+    <title>Ứng Dụng La Bàn Bát Trạch Cố Định</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         /* === STYLE CHUNG === */
@@ -23,13 +23,41 @@
             height: 80vh; 
             max-width: 800px;
             margin-top: 10px;
+            position: relative; 
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+
+        /* === LỚP PHỦ LA BÀN CỐ ĐỊNH TẠI TRUNG TÂM === */
+        #bagua-fixed-overlay {
+            position: fixed; 
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%); 
+            
+            width: 70vmin; 
+            height: 70vmin;
+            max-width: 400px;
+            max-height: 400px;
+
+            z-index: 1000; 
+            pointer-events: none; 
+            opacity: 0.7; 
+            will-change: transform;
+            transform-origin: center;
+            
+            /* Class để ẩn/hiện */
+            transition: opacity 0.3s ease;
+        }
+
+        /* Ẩn hình ảnh khi lớp phủ bị tắt */
+        .hidden-bagua {
+            opacity: 0 !important;
+        }
         
-        /* Tối ưu hóa hiệu suất xoay */
-        .leaflet-image-layer {
-            transition: none !important; 
-            will-change: transform; 
+        #bagua-fixed-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         /* Bảng điều khiển */
@@ -40,40 +68,94 @@
             padding: 15px 10px;
             background-color: white;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1001; 
+        }
+        
+        #buttons-and-input {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        #permission-button {
+        .control-button {
             padding: 12px 25px;
-            font-size: 1.1em;
+            font-size: 1em;
             cursor: pointer;
-            background-color: #007bff;
             color: white;
             border: none;
             border-radius: 6px;
-            margin-bottom: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        #permission-button {
+            background-color: #007bff;
+        }
+
+        #toggle-button {
+            background-color: #28a745;
+        }
+
+        #search-input-group {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #coord-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #search-button {
+            background-color: #ffc107;
+            color: #333;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
         #compass-info {
             font-size: 1em;
             color: #333;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
     <div id="control-panel">
-        <button id="permission-button">
-            Kích hoạt La Bàn để xoay Bát Trạch
-        </button>
+        <div id="buttons-and-input">
+            <button id="permission-button" class="control-button">
+                Kích hoạt La Bàn để xoay Bát Trạch
+            </button>
+            <button id="toggle-button" class="control-button">
+                Tắt Hiển thị La Bàn
+            </button>
+            <div id="search-input-group">
+                <input type="text" id="coord-input" placeholder="Nhập Lat,Lng (ví dụ: 21.0285,105.8048)">
+                <button id="search-button">Tìm</button>
+            </div>
+        </div>
+
         <p id="compass-info">
             Hướng hiện tại: <span id="current-heading">Đang chờ kích hoạt...</span> 
             | Bù trừ: <span id="offset-display">0.0°</span>
         </p>
-        <small style="color: green;">Đang chạy trên môi trường HTTPS bảo mật.</small>
+        <small style="color: green;">Lưu ý: Chức năng La Bàn chỉ hoạt động trên trình duyệt có HTTPS (Ví dụ: GitHub Pages).</small>
     </div>
 
     <div id="map-container"></div>
+    
+    <div id="bagua-fixed-overlay">
+        <img id="bagua-image" src="/images/anhlaban.png" alt="La Bàn Bát Trạch">
+    </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
@@ -82,52 +164,99 @@
         // THIẾT LẬP BAN ĐẦU (CẦN THAY THẾ)
         // =================================================================================
         
-        // Vĩ độ, Kinh độ trung tâm mảnh đất của bạn
-        const MAP_CENTER_LAT = 21.028511; // Thay thế YOUR_LATITUDE
-        const MAP_CENTER_LNG = 105.804817; // Thay thế YOUR_LONGITUDE
-
-        // URL của hình ảnh Bát Trạch PNG (Ví dụ: tên file cùng cấp)
-        const BAGUA_IMAGE_URL = '/images/anhlaban.png'; 
-
+        // Tọa độ trung tâm mặc định (Hà Nội)
+        let mapCenterLat = 21.028511; 
+        let mapCenterLng = 105.804817; 
+        
         // Hệ số bù trừ độ lệch (Thay đổi để phù hợp với độ lệch thực tế của bạn)
         const CALIBRATION_OFFSET = 0.0; 
         
         document.getElementById('offset-display').textContent = CALIBRATION_OFFSET.toFixed(1) + '°';
 
-        // Phạm vi hình ảnh Bát Trạch trên Map (Độ lớn của vòng tròn La Kinh)
-        const BAGUA_RADIUS = 0.0007; 
-        const bounds = [
-            [MAP_CENTER_LAT - BAGUA_RADIUS, MAP_CENTER_LNG - BAGUA_RADIUS], 
-            [MAP_CENTER_LAT + BAGUA_RADIUS, MAP_CENTER_LNG + BAGUA_RADIUS]  
-        ];
-
         // =================================================================================
-        // KHỞI TẠO MAP VÀ OVERLAY
+        // KHỞI TẠO MAP & MARKER
         // =================================================================================
 
-        var map = L.map('map-container').setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 17);
+        var map = L.map('map-container').setView([mapCenterLat, mapCenterLng], 17);
 
-        // Thêm Tile Layer (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 20,
             attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Thêm lớp phủ hình ảnh Bát Trạch
-        var baguaOverlay = L.imageOverlay(BAGUA_IMAGE_URL, bounds, {
-            opacity: 0.7, 
-            interactive: false 
-        }).addTo(map);
+        // Thêm marker tại vị trí trung tâm
+        var centerMarker = L.marker([mapCenterLat, mapCenterLng]).addTo(map)
+            .bindPopup("Vị trí cần đo hướng").openPopup();
 
-        var baguaImageElement = baguaOverlay.getElement();
-        
-        if (baguaImageElement) {
-            baguaImageElement.style.transformOrigin = 'center';
-            baguaImageElement.style.transform = 'rotate(0deg)'; 
-        }
+        // Lấy phần tử DOM của hình ảnh La Bàn cố định
+        var baguaOverlayElement = document.getElementById('bagua-fixed-overlay'); 
 
         // =================================================================================
-        // LOGIC LA BÀN VÀ XOAY (ĐÃ TỐI ƯU HÓA)
+        // 1. CHỨC NĂNG BẬT/TẮT LA BÀN
+        // =================================================================================
+
+        const toggleButton = document.getElementById('toggle-button');
+        let isBaguaVisible = true;
+
+        function toggleBaguaVisibility() {
+            if (isBaguaVisible) {
+                baguaOverlayElement.classList.add('hidden-bagua');
+                toggleButton.textContent = 'Bật Hiển thị La Bàn';
+                toggleButton.style.backgroundColor = '#ffc107';
+                toggleButton.style.color = '#333';
+            } else {
+                baguaOverlayElement.classList.remove('hidden-bagua');
+                toggleButton.textContent = 'Tắt Hiển thị La Bàn';
+                toggleButton.style.backgroundColor = '#28a745';
+                toggleButton.style.color = 'white';
+            }
+            isBaguaVisible = !isBaguaVisible;
+        }
+
+        toggleButton.addEventListener('click', toggleBaguaVisibility);
+
+        // =================================================================================
+        // 2. CHỨC NĂNG TÌM KIẾM TỌA ĐỘ
+        // =================================================================================
+        
+        const coordInput = document.getElementById('coord-input');
+        const searchButton = document.getElementById('search-button');
+
+        function searchCoordinates() {
+            const input = coordInput.value.trim();
+            const parts = input.split(',').map(p => p.trim());
+
+            if (parts.length === 2) {
+                const lat = parseFloat(parts[0]);
+                const lng = parseFloat(parts[1]);
+
+                if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                    // Cập nhật vị trí trung tâm và di chuyển map
+                    mapCenterLat = lat;
+                    mapCenterLng = lng;
+                    map.setView([mapCenterLat, mapCenterLng], 17);
+                    
+                    // Di chuyển Marker đến vị trí mới
+                    centerMarker.setLatLng([mapCenterLat, mapCenterLng]);
+                    centerMarker.getPopup().setContent(`Vị trí cần đo hướng: ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
+
+                } else {
+                    alert("Tọa độ không hợp lệ. Vui lòng nhập định dạng Lat,Lng (ví dụ: 21.0285,105.8048).");
+                }
+            } else {
+                alert("Vui lòng nhập đầy đủ Lat và Lng, cách nhau bằng dấu phẩy.");
+            }
+        }
+
+        searchButton.addEventListener('click', searchCoordinates);
+        coordInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                searchCoordinates();
+            }
+        });
+
+        // =================================================================================
+        // 3. LOGIC LA BÀN VÀ XOAY (Giữ nguyên)
         // =================================================================================
 
         const currentHeadingDisplay = document.getElementById('current-heading');
@@ -138,8 +267,8 @@
         const smoothingFactor = 0.15; 
 
         function smoothRotation() {
-            if (!baguaImageElement) {
-                 requestAnimationFrame(smoothRotation); 
+            if (!baguaOverlayElement) {
+                 requestAnimationFrame(smoothRotation);
                  return;
             }
 
@@ -153,7 +282,9 @@
             }
 
             currentRotation += (desiredRotation - currentRotation) * smoothingFactor;
-            baguaImageElement.style.transform = `rotate(${currentRotation.toFixed(2)}deg)`;
+            
+            // Xoay La Bàn cố định
+            baguaOverlayElement.style.transform = `translate(-50%, -50%) rotate(${currentRotation.toFixed(2)}deg)`;
             
             requestAnimationFrame(smoothRotation);
         }
@@ -185,7 +316,6 @@
                         if (permissionState === 'granted') {
                             window.addEventListener('deviceorientation', handleDeviceOrientation);
                             permissionButton.style.display = 'none'; 
-                            // Nếu đã cấp quyền, bắt đầu lắng nghe và xoay
                             smoothRotation();
                             currentHeadingDisplay.textContent = 'Đang đo hướng...';
                         } else {
@@ -197,7 +327,7 @@
                          console.error("Lỗi yêu cầu quyền la bàn:", err);
                     });
             } else {
-                // Đối với các trình duyệt không cần yêu cầu quyền rõ ràng
+                // Đối với các trình duyệt không hỗ trợ API requestPermission (Android/Desktop)
                 window.addEventListener('deviceorientation', handleDeviceOrientation);
                 permissionButton.style.display = 'none';
                 smoothRotation();
@@ -205,10 +335,8 @@
             }
         }
 
-        // Gắn sự kiện click cho nút yêu cầu quyền
         permissionButton.addEventListener('click', requestDeviceOrientationPermission);
         
-        // Bắt đầu vòng lặp làm mượt chuyển động
         requestAnimationFrame(smoothRotation); 
     </script>
 </body>
