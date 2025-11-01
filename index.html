@@ -70,7 +70,7 @@
             Hướng hiện tại: <span id="current-heading">Đang chờ kích hoạt...</span> 
             | Bù trừ: <span id="offset-display">0.0°</span>
         </p>
-        <small style="color: red;">Lưu ý: Ứng dụng phải chạy trên HTTPS hoặc localhost.</small>
+        <small style="color: green;">Đang chạy trên môi trường HTTPS bảo mật.</small>
     </div>
 
     <div id="map-container"></div>
@@ -82,15 +82,15 @@
         // THIẾT LẬP BAN ĐẦU (CẦN THAY THẾ)
         // =================================================================================
         
-        // Tọa độ trung tâm mảnh đất của bạn (Thay thế bằng tọa độ thực tế)
-        const MAP_CENTER_LAT = YOUR_LATITUDE; 
-        const MAP_CENTER_LNG = YOUR_LONGITUDE; 
+        // Vĩ độ, Kinh độ trung tâm mảnh đất của bạn
+        const MAP_CENTER_LAT = 21.028511; // Thay thế YOUR_LATITUDE
+        const MAP_CENTER_LNG = 105.804817; // Thay thế YOUR_LONGITUDE
 
-        // URL của hình ảnh Bát Trạch PNG
-        const BAGUA_IMAGE_URL = '/images/anhlaban.png'; 
+        // URL của hình ảnh Bát Trạch PNG (Ví dụ: tên file cùng cấp)
+        const BAGUA_IMAGE_URL = 'YOUR_BAGUA_IMAGE.png'; 
 
-        // Hệ số bù trừ/Hiệu chỉnh độ lệch (Ví dụ: -2.2 nếu la bàn web lớn hơn 2.2 độ)
-        const CALIBRATION_OFFSET = 0.0; // THAY ĐỔI ĐỂ PHÙ HỢP VỚI ĐỘ LỆCH CỦA BẠN!
+        // Hệ số bù trừ độ lệch (Thay đổi để phù hợp với độ lệch thực tế của bạn)
+        const CALIBRATION_OFFSET = 0.0; 
         
         document.getElementById('offset-display').textContent = CALIBRATION_OFFSET.toFixed(1) + '°';
 
@@ -123,7 +123,6 @@
         
         if (baguaImageElement) {
             baguaImageElement.style.transformOrigin = 'center';
-            // Đặt xoay ban đầu là 0
             baguaImageElement.style.transform = 'rotate(0deg)'; 
         }
 
@@ -136,19 +135,16 @@
 
         let targetHeading = 0; 
         let currentRotation = 0; 
-        const smoothingFactor = 0.15; // Giữ nguyên để xoay mượt
+        const smoothingFactor = 0.15; 
 
-        // Hàm làm mượt chuyển động xoay
         function smoothRotation() {
             if (!baguaImageElement) {
-                 requestAnimationFrame(smoothRotation); // Đảm bảo tiếp tục chạy
+                 requestAnimationFrame(smoothRotation); 
                  return;
             }
 
-            // Hướng xoay mong muốn (Bù trừ độ lệch và xoay ngược lại)
             let desiredRotation = -(targetHeading + CALIBRATION_OFFSET);
 
-            // Tối ưu hóa xoay theo đường ngắn nhất
             while (desiredRotation - currentRotation > 180) {
                 currentRotation += 360;
             }
@@ -157,22 +153,17 @@
             }
 
             currentRotation += (desiredRotation - currentRotation) * smoothingFactor;
-
-            // Áp dụng xoay lên lớp phủ Leaflet
             baguaImageElement.style.transform = `rotate(${currentRotation.toFixed(2)}deg)`;
             
             requestAnimationFrame(smoothRotation);
         }
 
-        // Hàm xử lý dữ liệu từ cảm biến la bàn
         function handleDeviceOrientation(event) {
             let rawHeading;
 
             if (event.webkitCompassHeading !== undefined) {
-                // Safari iOS: Dữ liệu la bàn ổn định nhất
                 rawHeading = event.webkitCompassHeading;
             } else if (event.alpha !== null) {
-                // Trình duyệt khác: Dữ liệu Alpha (ít chính xác hơn)
                 rawHeading = 360 - event.alpha; 
             } else {
                 return; 
@@ -180,7 +171,6 @@
             
             targetHeading = rawHeading; 
             
-            // Tính toán Hướng hiển thị đã hiệu chỉnh
             let displayHeading = rawHeading + CALIBRATION_OFFSET;
             while (displayHeading < 0) displayHeading += 360;
             while (displayHeading >= 360) displayHeading -= 360;
@@ -188,39 +178,37 @@
             currentHeadingDisplay.textContent = `${displayHeading.toFixed(1)}°`;
         }
 
-        // Hàm yêu cầu cấp quyền truy cập la bàn (Đã tối ưu cho HTTPS)
         function requestDeviceOrientationPermission() {
-             // 1. Kiểm tra nếu trình duyệt hỗ trợ yêu cầu cấp quyền rõ ràng (iOS 13+ Safari)
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission()
                     .then(permissionState => {
                         if (permissionState === 'granted') {
                             window.addEventListener('deviceorientation', handleDeviceOrientation);
                             permissionButton.style.display = 'none'; 
+                            // Nếu đã cấp quyền, bắt đầu lắng nghe và xoay
                             smoothRotation();
-                            alert('La Bàn đã được kích hoạt thành công!');
+                            currentHeadingDisplay.textContent = 'Đang đo hướng...';
                         } else {
-                            currentHeadingDisplay.textContent = '⛔ Bị từ chối cấp quyền.';
+                            currentHeadingDisplay.textContent = '⛔ Bị từ chối cấp quyền. Vui lòng thử lại.';
                         }
                     })
                     .catch(err => {
-                        // Thường là lỗi bảo mật nếu không phải HTTPS
-                         currentHeadingDisplay.textContent = '❌ Lỗi kích hoạt. Hãy đảm bảo dùng HTTPS.';
+                         currentHeadingDisplay.textContent = '❌ Lỗi hệ thống cảm biến.';
                          console.error("Lỗi yêu cầu quyền la bàn:", err);
                     });
             } else {
-                // 2. Nếu trình duyệt không hỗ trợ requestPermission() (Các trình duyệt/HĐH cũ hoặc Android)
+                // Đối với các trình duyệt không cần yêu cầu quyền rõ ràng
                 window.addEventListener('deviceorientation', handleDeviceOrientation);
                 permissionButton.style.display = 'none';
                 smoothRotation();
-                alert('La Bàn đã được kích hoạt (không cần cấp quyền).');
+                currentHeadingDisplay.textContent = 'Đang đo hướng...';
             }
         }
 
         // Gắn sự kiện click cho nút yêu cầu quyền
         permissionButton.addEventListener('click', requestDeviceOrientationPermission);
         
-        // Bắt đầu làm mượt ngay cả khi chưa có dữ liệu la bàn
+        // Bắt đầu vòng lặp làm mượt chuyển động
         requestAnimationFrame(smoothRotation); 
     </script>
 </body>
